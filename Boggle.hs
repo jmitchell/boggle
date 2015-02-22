@@ -22,7 +22,7 @@ emptyTray dims = (dims, (\_ -> Nothing))
 -- [(0,0),(0,1)]
 emptyPositions :: Tray -> [Coordinate]
 emptyPositions ((w,h), at) =
-  [(x,y) | x <- [0..(w-1)], y <- [0..(h-1)], isNothing $ at (x,y)]
+  [(x,y) | y <- [0..(h-1)], x <- [0..(w-1)], isNothing $ at (x,y)]
 
 -- | Check if every valid coordinate on the tray has been assigned a
 -- letter.
@@ -67,6 +67,25 @@ safeInsertLetter tray@((w,h), at) (x,y) letter =
                           then Just letter
                           else at coord))
   else tray
+
+-- | Sequentially load letters into the tray until it's either full or
+-- there are no more letters.
+--
+-- The process for selecting the next position to fill is
+-- deterministic. Shuffle the list of letters beforehand if the goal
+-- is to "shake" the tray.
+--
+-- >>> trayString '_' $ loadTray (emptyTray (2,3)) ['a'..]
+-- "ab\ncd\nef"
+loadTray :: Tray -> [Letter] -> Tray
+loadTray tray letters =
+  case (isFull tray, letters) of
+    (True, _)       -> tray
+    (_, [])         -> tray
+    (False, (c:cs)) -> loadTray newTray cs
+      where
+        nextPosition = head $ emptyPositions tray
+        newTray = safeInsertLetter tray nextPosition c
 
 -- | String representation of a Tray.
 --
