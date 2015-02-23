@@ -4,11 +4,13 @@ module Boggle where
 
 import Data.List
 import Data.Maybe
+import Debug.Trace
 
 type Letter = Char
 type Dimensions = (Int, Int)
 type Coordinate = (Int, Int)
 type Tray = (Dimensions, (Coordinate -> Maybe Letter))
+type WordPath = [Coordinate]
 
 -- | Create an empty tray with the specified dimensions.
 --
@@ -102,7 +104,65 @@ neighbors :: Dimensions -> Coordinate -> [Coordinate]
 neighbors (w,h) (x,y) =
   filter (validCoordinate (w,h)) [(x+i,y+j) | j <- [-1..1], i <- [-1..1], (i,j) /= (0,0)]
 
+-- | Locate a letter on the tray. Returns a list of coordinates for
+-- all matches.
+--
+-- >>> findLetter (emptyTray (1,1)) 'x'
+-- []
+--
+-- >>> findLetter (loadTray (emptyTray (2,2)) "wxyz") 'x'
+-- [(1,0)]
+--
+-- >>> findLetter (loadTray (emptyTray (2,2)) "xxxx") 'x'
+-- [(0,0),(0,1),(1,0),(1,1)]
+findLetter :: Tray -> Letter -> [Coordinate]
+findLetter ((w,h), at) letter =
+  [(x,y) | x <- [0..(w-1)], y <- [0..(h-1)], at (x,y) == Just letter]
 
+-- | Locate neighbors matching the provided letter.
+--
+-- >>> findNeighboringLetter (loadTray (emptyTray (2,2)) "wxyz") (0,0) 'z'
+-- [(1,1)]
+findNeighboringLetter :: Tray -> Coordinate -> Letter -> [Coordinate]
+findNeighboringLetter tray@(dims,_) fromCoord letter =
+  filter (`elem` (neighbors dims fromCoord)) letterCoords
+  where
+    letterCoords = findLetter tray letter
+
+-- | Find all paths on the Boggle tray which spell out the specified
+-- word. No coordinate may be used multiple times in the same path.
+--
+-- >>> findWord (loadTray (emptyTray (1,1)) "x") "x"
+-- [[(0,0)]]
+--
+-- >>> findWord (loadTray (emptyTray (1,1)) "A") "x"
+-- []
+--
+-- >>> findWord (loadTray (emptyTray (2,2)) "x--x") "x"
+-- [[(0,0)],[(1,1)]]
+--
+-- >>> findWord (loadTray (emptyTray (2,2)) "cat-") "cat"
+-- [[(0,0),(1,0),(0,1)]]
+--
+-- >>> findWord (loadTray (emptyTray (2,2)) "patp") "pat"
+-- [[(0,0),(1,0),(0,1)],[(1,1),(1,0),(0,1)]]
+findWord :: Tray -> [Letter] -> [WordPath]
+findWord tray word =
+  case word of
+    [] -> []
+    (w:ws) -> map reverse $ findWord' ws $ initialPaths w
+  where
+    initialPaths letter = map (\x -> [x]) $ findLetter tray letter
+
+    findWordFromPath :: [Letter] -> WordPath -> [WordPath]
+    findWordFromPath word path =
+      case (word, path) of
+        ("", _) -> [path]
+        (w:ws, c:cs) -> findWord' ws [m:(c:cs) | m <- findNeighboringLetter tray c w, not (m `elem` (c:cs))]
+
+    findWord' :: [Letter] -> [WordPath] -> [WordPath]
+    findWord' w paths =
+      concatMap (findWordFromPath w) paths
 
 -- | String representation of a Tray.
 --
