@@ -2,12 +2,11 @@ module Boggle where
 
 import Data.List
 import Data.Maybe
-import Debug.Trace
 
 type Letter = Char
 type Dimensions = (Int, Int)
 type Coordinate = (Int, Int)
-type Tray = (Dimensions, (Coordinate -> Maybe Letter))
+type Tray = (Dimensions, Coordinate -> Maybe Letter)
 type WordPath = [Coordinate]
 
 -- | Create an empty tray with the specified dimensions.
@@ -62,10 +61,10 @@ validCoordinate (w,h) (x,y) =
 -- already occupies that position, return the original tray.
 safeInsertLetter :: Tray -> Coordinate -> Letter -> Tray
 safeInsertLetter tray@((w,h), at) (x,y) letter =
-  if validCoordinate (w,h) (x,y) && (isNothing $ at (x,y))
-  then ((w,h), (\coord -> if coord == (x,y)
-                          then Just letter
-                          else at coord))
+  if validCoordinate (w,h) (x,y) && isNothing (at (x,y))
+  then ((w,h), \coord -> if coord == (x,y)
+                         then Just letter
+                         else at coord)
   else tray
 
 -- | Sequentially load letters into the tray until it's either full or
@@ -134,7 +133,7 @@ findLetter ((w,h), at) letter =
 -- [(1,1)]
 findNeighboringLetter :: Tray -> Coordinate -> Letter -> [Coordinate]
 findNeighboringLetter tray@(dims,_) fromCoord letter =
-  filter (`elem` (neighbors dims fromCoord)) letterCoords
+  filter (`elem` neighbors dims fromCoord) letterCoords
   where
     letterCoords = findLetter tray letter
 
@@ -155,23 +154,29 @@ findNeighboringLetter tray@(dims,_) fromCoord letter =
 --
 -- >>> findWord (loadTray (emptyTray (2,2)) "patp") "pat"
 -- [[(0,0),(1,0),(0,1)],[(1,1),(1,0),(0,1)]]
+--
+-- There are no words on an empty tray:
+-- prop> findWord (emptyTray (w,h)) word == []
 findWord :: Tray -> [Letter] -> [WordPath]
 findWord tray word =
   case word of
     [] -> []
     (w:ws) -> map reverse $ findWord' ws $ initialPaths w
   where
-    initialPaths letter = map (\x -> [x]) $ findLetter tray letter
-
-    findWordFromPath :: [Letter] -> WordPath -> [WordPath]
+    initialPaths letter = map (: []) $ findLetter tray letter
     findWordFromPath word path =
       case (word, path) of
         ("", _) -> [path]
-        (w:ws, c:cs) -> findWord' ws [m:(c:cs) | m <- findNeighboringLetter tray c w, not (m `elem` (c:cs))]
+        (w:ws, c:cs) -> findWord' ws [m:(c:cs) | m <- findNeighboringLetter tray c w, m `notElem` (c:cs)]
+    findWord' w =
+      concatMap (findWordFromPath w)
 
-    findWord' :: [Letter] -> [WordPath] -> [WordPath]
-    findWord' w paths =
-      concatMap (findWordFromPath w) paths
+-- | Search tray for the provided words and return all that are found.
+--
+-- There are no words on an empty tray:
+-- prop> wordsOnTray (emptyTray (w,h)) ws == []
+wordsOnTray :: Tray -> [[Letter]] -> [[Letter]]
+wordsOnTray tray = filter (not . null . findWord tray)
 
 -- | String representation of a Tray.
 --
