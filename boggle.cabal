@@ -9,7 +9,7 @@ license:             MIT
 license-file:        LICENSE
 author:              Jake Mitchell
 maintainer:          jacob.d.mitchell@gmail.com
-home-page:           https://github.com/jmitchell/boggle
+homepage:            https://github.com/jmitchell/boggle
 bug-reports:         https://github.com/jmitchell/boggle/issues
 -- copyright:           
 category:            Game
@@ -34,3 +34,4 @@ Test-Suite doctest
   Main-Is:              doctests.hs
   Build-Depends:        base
                       , doctest >= 0.9.3
+                      , QuickCheck

@@ -100,6 +100,12 @@ loadTray tray letters =
 --
 -- >>> neighbors (1,1) (0,0)
 -- []
+--
+-- prop> length (neighbors d c) <= 8
+--
+-- prop> not $ c `elem` (neighbors d c)
+--
+-- prop> not $ any (\(x,y) -> x < 0 || y < 0 || x >= w || y >= h) (neighbors (w,h) c)
 neighbors :: Dimensions -> Coordinate -> [Coordinate]
 neighbors (w,h) (x,y) =
   filter (validCoordinate (w,h)) [(x+i,y+j) | j <- [-1..1], i <- [-1..1], (i,j) /= (0,0)]
@@ -166,14 +172,21 @@ findWord tray word =
 
 -- | String representation of a Tray.
 --
--- >>> trayString '*' $ emptyTray (3, 2)
--- "***\n***"
+-- >>> putStr $ trayString '*' $ emptyTray (3, 2)
+-- ***
+-- ***
 --
--- >>> trayString '_' $ emptyTray (4, 4)
--- "____\n____\n____\n____"
+-- >>> putStr $ trayString '_' $ emptyTray (4, 4)
+-- ____
+-- ____
+-- ____
+-- ____
 --
--- >>> trayString '_' (safeInsertLetter (safeInsertLetter (emptyTray (4, 4)) (2,0) 'x') (1,1) 'y')
--- "__x_\n_y__\n____\n____"
+-- >>> putStr $ trayString '_' (safeInsertLetter (safeInsertLetter (emptyTray (4, 4)) (2,0) 'x') (1,1) 'y')
+-- __x_
+-- _y__
+-- ____
+-- ____
 trayString :: Char -> Tray -> String
 trayString emptyChar ((w,h), at) =
   intercalate "\n" rows
