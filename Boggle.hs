@@ -87,6 +87,23 @@ loadTray tray letters =
         nextPosition = head $ emptyPositions tray
         newTray = safeInsertLetter tray nextPosition c
 
+-- | All valid coordinates neighboring the provided coordinate. There
+-- can be up to 8 neighbors (4 sides and 4 diagonals).
+--
+-- >>> neighbors (2,2) (0,0)
+-- [(1,0),(0,1),(1,1)]
+--
+-- >>> neighbors (3,3) (1,1)
+-- [(0,0),(1,0),(2,0),(0,1),(2,1),(0,2),(1,2),(2,2)]
+--
+-- >>> neighbors (1,1) (0,0)
+-- []
+neighbors :: Dimensions -> Coordinate -> [Coordinate]
+neighbors (w,h) (x,y) =
+  filter (validCoordinate (w,h)) [(x+i,y+j) | j <- [-1..1], i <- [-1..1], (i,j) /= (0,0)]
+
+
+
 -- | String representation of a Tray.
 --
 -- >>> trayString '*' $ emptyTray (3, 2)
