@@ -1,5 +1,3 @@
--- |
-
 module Boggle where
 
 import Data.List
@@ -16,7 +14,7 @@ type WordPath = [Coordinate]
 --
 -- Dimensions should be positive, but this constraint isn't checked.
 emptyTray :: Dimensions -> Tray
-emptyTray dims = (dims, (\_ -> Nothing))
+emptyTray dims = (dims, const Nothing)
 
 -- | List of tray coordinates with no assigned letters.
 --
@@ -81,13 +79,12 @@ safeInsertLetter tray@((w,h), at) (x,y) letter =
 -- "ab\ncd\nef"
 loadTray :: Tray -> [Letter] -> Tray
 loadTray tray letters =
-  case (isFull tray, letters) of
-    (True, _)       -> tray
-    (_, [])         -> tray
-    (False, (c:cs)) -> loadTray newTray cs
+  case (emptyPositions tray, letters) of
+    ([], _)     -> tray
+    (_, [])     -> tray
+    (p:_, c:cs) -> loadTray newTray cs
       where
-        nextPosition = head $ emptyPositions tray
-        newTray = safeInsertLetter tray nextPosition c
+        newTray = safeInsertLetter tray p c
 
 -- | All valid coordinates neighboring the provided coordinate. There
 -- can be up to 8 neighbors (4 sides and 4 diagonals).
@@ -101,11 +98,17 @@ loadTray tray letters =
 -- >>> neighbors (1,1) (0,0)
 -- []
 --
+-- There are no more than 8 neighbors:
 -- prop> length (neighbors d c) <= 8
 --
+-- No coordinate neighbors itself:
 -- prop> not $ c `elem` (neighbors d c)
 --
+-- No neighbors fall outside the space defined by the dimensions parameter:
 -- prop> not $ any (\(x,y) -> x < 0 || y < 0 || x >= w || y >= h) (neighbors (w,h) c)
+--
+-- Returned list of neighbors has no duplicates:
+-- prop> neighbors d c == nub (neighbors d c)
 neighbors :: Dimensions -> Coordinate -> [Coordinate]
 neighbors (w,h) (x,y) =
   filter (validCoordinate (w,h)) [(x+i,y+j) | j <- [-1..1], i <- [-1..1], (i,j) /= (0,0)]
