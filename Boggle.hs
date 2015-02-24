@@ -2,6 +2,7 @@ module Boggle where
 
 import Data.List
 import Data.Maybe
+import System.Random
 
 type Letter = Char
 type Dimensions = (Int, Int)
@@ -84,6 +85,39 @@ loadTray tray letters =
     (p:_, c:cs) -> loadTray newTray cs
       where
         newTray = safeInsertLetter tray p c
+
+alphabet :: [Letter]
+alphabet = ['a'..'z']
+
+-- | Randomly select an element from the list.
+--
+-- Returns Nothing if the list is empty:
+--
+-- >>> pickRandomly []
+-- Nothing
+pickRandomly :: [a] -> IO (Maybe a)
+pickRandomly elts =
+  case elts of
+    [] -> return Nothing
+    _  -> do
+      index <- randomRIO (0, (length elts)-1)
+      return $ Just $ elts !! index
+
+pickManyRandomly :: Int -> [a] -> IO [a]
+pickManyRandomly n xs
+  | n <= 0 || null xs = return []
+  | otherwise         = do
+    p <- pickRandomly xs
+    ps <- pickManyRandomly (n-1) xs
+    case p of
+      Just p' -> do return (p':ps)
+      _       -> do return ps
+
+-- |
+shuffledTray :: Dimensions -> IO Tray
+shuffledTray (w,h) = do
+  randomLetters <- pickManyRandomly (w*h) alphabet
+  return $ loadTray (emptyTray (w,h)) randomLetters
 
 -- | All valid coordinates neighboring the provided coordinate. There
 -- can be up to 8 neighbors (4 sides and 4 diagonals).
